@@ -11,9 +11,7 @@ Generate normalized artifacts from DDragon snapshots produced by `lol-ddragon-sn
 ## Usage
 
 ```
-python -m lol_ddragon_context_artifact_builder \
-  --snapshot-version 14.1.1 \
-  --snapshot-locale en_US
+./gradlew run --args="--snapshot-version 14.1.1 --snapshot-locale en_US"
 ```
 
 ### Configuration
