@@ -29,3 +29,4 @@ Output path example:
 ## Notes
 - Base URIs can be local paths or `file://` URIs.
 - The `normalized_name` field is the canonical join key for downstream consumers.
+- Project Brain (`/home/jirving/projects/lol/project-brain/DECISIONS.md`) is the source of truth for path contracts and policy.
