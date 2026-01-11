@@ -2,6 +2,7 @@
 build/
 out/
 data/
+bin/
 *.iml
 .idea/
 .DS_Store
