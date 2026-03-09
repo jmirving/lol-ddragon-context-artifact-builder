@@ -13,8 +13,10 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.stream.Stream;
 
 public final class ArtifactBuilderApp {
     private static final ObjectMapper MAPPER = new ObjectMapper()
@@ -49,31 +51,49 @@ public final class ArtifactBuilderApp {
         ArtifactConfig config = buildConfig(parsedArgs);
 
         Path snapshotBase = resolveBasePath(config.snapshotBaseUri(), "SNAPSHOT_BASE_URI");
-        Path snapshotPath = snapshotBase
-                .resolve(config.snapshotVersion())
+        Path snapshotRoot = resolveSnapshotRoot(snapshotBase, config.snapshotVersion(), config.snapshotLocale());
+        Path snapshotPath = snapshotRoot
                 .resolve("data")
                 .resolve(config.snapshotLocale())
                 .resolve("champion.json");
+        Path championDirectory = snapshotRoot
+                .resolve("data")
+                .resolve(config.snapshotLocale())
+                .resolve("champion");
 
         if (!Files.exists(snapshotPath)) {
             throw new FileNotFoundException("Snapshot not found: " + snapshotPath);
         }
+        if (!Files.isDirectory(championDirectory)) {
+            throw new FileNotFoundException("Champion directory not found: " + championDirectory);
+        }
 
         Path artifactsBase = resolveBasePath(config.artifactsBaseUri(), "ARTIFACTS_BASE_URI");
-        Path outputPath = artifactsBase
-                .resolve("ddragon")
-                .resolve("artifacts")
-                .resolve("champion-mapping")
-                .resolve(config.artifactVersion() + ".json");
+        Path mappingOutputPath = resolveArtifactPath(artifactsBase, "champion-mapping", config.artifactVersion(), "json");
+        Path coreOutputPath = resolveArtifactPath(artifactsBase, "champion-core", config.artifactVersion(), "csv");
+        Path spellsOutputPath = resolveArtifactPath(artifactsBase, "champion-spells", config.artifactVersion(), "csv");
 
         JsonNode payload = MAPPER.readTree(snapshotPath.toFile());
         var mapping = ChampionMappingBuilder.build(payload);
+        List<JsonNode> championPayloads = readChampionPayloads(championDirectory);
+        var coreRows = ChampionCoreCsvBuilder.build(championPayloads);
+        var spellRows = ChampionSpellCsvBuilder.build(championPayloads);
 
-        Files.createDirectories(outputPath.getParent());
+        Files.createDirectories(mappingOutputPath.getParent());
+        Files.createDirectories(coreOutputPath.getParent());
+        Files.createDirectories(spellsOutputPath.getParent());
         String json = MAPPER.writerWithDefaultPrettyPrinter().writeValueAsString(mapping);
-        Files.writeString(outputPath, json + System.lineSeparator(), StandardCharsets.UTF_8);
+        Files.writeString(mappingOutputPath, json + System.lineSeparator(), StandardCharsets.UTF_8);
+        Files.writeString(coreOutputPath,
+                CsvWriter.write(ChampionCoreCsvBuilder.headers(), ChampionCoreCsvBuilder.toCsvRows(coreRows)),
+                StandardCharsets.UTF_8);
+        Files.writeString(spellsOutputPath,
+                CsvWriter.write(ChampionSpellCsvBuilder.headers(), ChampionSpellCsvBuilder.toCsvRows(spellRows)),
+                StandardCharsets.UTF_8);
 
-        System.out.println("Wrote champion mapping to " + outputPath);
+        System.out.println("Wrote champion mapping to " + mappingOutputPath);
+        System.out.println("Wrote champion core CSV to " + coreOutputPath);
+        System.out.println("Wrote champion spells CSV to " + spellsOutputPath);
     }
 
     private static Map<String, String> parseArgs(String[] args) {
@@ -140,5 +160,51 @@ public final class ArtifactBuilderApp {
             return Paths.get(uri);
         }
         throw new IllegalArgumentException(envLabel + " must be a local path or file:// URI.");
+    }
+
+    private static Path resolveSnapshotRoot(Path snapshotBase, String snapshotVersion, String snapshotLocale) {
+        Path directRoot = snapshotBase.resolve(snapshotVersion);
+        if (isSnapshotRoot(directRoot, snapshotLocale)) {
+            return directRoot;
+        }
+
+        Path nestedRoot = directRoot.resolve(snapshotVersion);
+        if (isSnapshotRoot(nestedRoot, snapshotLocale)) {
+            return nestedRoot;
+        }
+
+        return directRoot;
+    }
+
+    private static boolean isSnapshotRoot(Path root, String snapshotLocale) {
+        Path localeDirectory = root.resolve("data").resolve(snapshotLocale);
+        return Files.exists(localeDirectory.resolve("champion.json"))
+                && Files.isDirectory(localeDirectory.resolve("champion"));
+    }
+
+    private static Path resolveArtifactPath(Path artifactsBase, String artifactName, String artifactVersion, String extension) {
+        return artifactsBase
+                .resolve("ddragon")
+                .resolve("artifacts")
+                .resolve(artifactName)
+                .resolve(artifactVersion + "." + extension);
+    }
+
+    private static List<JsonNode> readChampionPayloads(Path championDirectory) throws IOException {
+        try (Stream<Path> paths = Files.list(championDirectory)) {
+            return paths
+                    .filter(path -> path.getFileName().toString().endsWith(".json"))
+                    .sorted()
+                    .map(ArtifactBuilderApp::readJson)
+                    .toList();
+        }
+    }
+
+    private static JsonNode readJson(Path path) {
+        try {
+            return MAPPER.readTree(path.toFile());
+        } catch (IOException exc) {
+            throw new IllegalArgumentException("Failed to read champion payload: " + path, exc);
+        }
     }
 }

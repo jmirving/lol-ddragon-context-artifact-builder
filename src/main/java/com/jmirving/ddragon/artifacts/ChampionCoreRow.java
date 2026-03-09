@@ -1,0 +1,35 @@
+package com.jmirving.ddragon.artifacts;
+
+public record ChampionCoreRow(
+        String normalizedName,
+        String name,
+        String id,
+        String key,
+        String tags,
+        String partype,
+        String infoAttack,
+        String infoDefense,
+        String infoMagic,
+        String infoDifficulty,
+        String hp,
+        String hpPerLevel,
+        String mp,
+        String mpPerLevel,
+        String moveSpeed,
+        String armor,
+        String armorPerLevel,
+        String spellBlock,
+        String spellBlockPerLevel,
+        String attackRange,
+        String hpRegen,
+        String hpRegenPerLevel,
+        String mpRegen,
+        String mpRegenPerLevel,
+        String crit,
+        String critPerLevel,
+        String attackDamage,
+        String attackDamagePerLevel,
+        String attackSpeedPerLevel,
+        String attackSpeed
+) {
+}
