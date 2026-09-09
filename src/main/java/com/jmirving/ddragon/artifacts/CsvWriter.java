@@ -41,7 +41,7 @@ public final class CsvWriter {
             }
             builder.append(escape(row.get(index)));
         }
-        builder.append(System.lineSeparator());
+        builder.append('\n');
     }
 
     private static String escape(String value) {

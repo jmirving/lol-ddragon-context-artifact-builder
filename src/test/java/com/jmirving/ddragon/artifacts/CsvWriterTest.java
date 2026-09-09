@@ -14,7 +14,6 @@ class CsvWriterTest {
                 List.of(List.of("A, B", "\"quoted\""))
         );
 
-        assertEquals("name,value" + System.lineSeparator()
-                + "\"A, B\",\"\"\"quoted\"\"\"" + System.lineSeparator(), csv);
+        assertEquals("name,value\n\"A, B\",\"\"\"quoted\"\"\"\n", csv);
     }
 }
