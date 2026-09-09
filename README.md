@@ -59,4 +59,4 @@ Additional CSV outputs:
   content uses stable ordering and LF line endings for repeatable checksums.
 - The `normalized_name` field is the canonical join key for downstream consumers.
 - The builder tolerates both `<version>/data/...` and `<version>/<version>/data/...` snapshot roots.
-- Project Brain (`/home/jirving/projects/lol/project-brain/DECISIONS.md`) is the source of truth for path contracts and policy.
+- Repository-local code, tests, documentation, and GitHub issues define the current path and artifact contracts.
